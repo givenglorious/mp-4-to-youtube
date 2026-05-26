@@ -1,257 +1,233 @@
+#!/usr/bin/env python3
+"""
+YouTube to MP4 Converter - Backend Server
+Requirements: pip install flask yt-dlp flask-cors
+Run: python server.py
+"""
+
 import os
 import re
 import json
-import subprocess
-import tempfile
 import threading
-import time
 from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
+import yt_dlp
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__)
 CORS(app)
 
-# Folder sementara untuk file download
-DOWNLOAD_FOLDER = tempfile.mkdtemp()
+DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), "downloads")
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-# Simpan progress per job
-job_status = {}
-job_lock = threading.Lock()
-
-def clean_youtube_url(url):
-    """Validasi dan bersihkan URL YouTube"""
-    patterns = [
-        r'(https?://)?(www\.)?(youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]{11})',
-        r'(https?://)?(www\.)?youtube\.com/shorts/([a-zA-Z0-9_-]{11})',
-    ]
-    for p in patterns:
-        m = re.search(p, url)
-        if m:
-            return True
-    return False
-
-def get_best_resolution_format(url):
-    """Ambil info video dan pilih resolusi terbaik yang tersedia"""
-    try:
-        result = subprocess.run(
-            ['yt-dlp', '--dump-json', '--no-playlist', url],
-            capture_output=True, text=True, timeout=30
-        )
-        if result.returncode != 0:
-            return None, None
-
-        info = json.loads(result.stdout)
-        formats = info.get('formats', [])
-
-        # Cari format video+audio terbaik
-        best_height = 0
-        for f in formats:
-            if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
-                h = f.get('height', 0) or 0
-                if h > best_height:
-                    best_height = h
-
-        # Jika tidak ada format gabungan, cek video-only
-        if best_height == 0:
-            for f in formats:
-                if f.get('vcodec') != 'none':
-                    h = f.get('height', 0) or 0
-                    if h > best_height:
-                        best_height = h
-
-        title = info.get('title', 'video')
-        title = re.sub(r'[^\w\s-]', '', title).strip()
-        title = re.sub(r'\s+', '_', title)[:50]
-
-        return best_height, title
-    except Exception as e:
-        return None, None
-
-def download_video(job_id, url):
-    """Download video di background thread"""
-    with job_lock:
-        job_status[job_id] = {'status': 'starting', 'progress': 0, 'file': None, 'error': None}
-
-    try:
-        output_path = os.path.join(DOWNLOAD_FOLDER, f'{job_id}.mp4')
-
-        # Format selector: ambil resolusi terbaik yang tersedia, merge jadi mp4
-        format_selector = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best'
-
-        cmd = [
-            'yt-dlp',
-            '--no-playlist',
-            '-f', format_selector,
-            '--merge-output-format', 'mp4',
-            '--no-warnings',
-            '--progress',
-            '-o', output_path,
-            url
-        ]
-
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1
-        )
-
-        for line in process.stdout:
-            line = line.strip()
-            # Parse progress dari output yt-dlp
-            if '[download]' in line and '%' in line:
-                try:
-                    pct_match = re.search(r'(\d+\.?\d*)%', line)
-                    if pct_match:
-                        pct = float(pct_match.group(1))
-                        with job_lock:
-                            job_status[job_id]['progress'] = round(pct)
-                            job_status[job_id]['status'] = 'downloading'
-                except:
-                    pass
-
-        process.wait()
-
-        if process.returncode == 0 and os.path.exists(output_path):
-            with job_lock:
-                job_status[job_id] = {
-                    'status': 'done',
-                    'progress': 100,
-                    'file': output_path,
-                    'error': None
-                }
-        else:
-            with job_lock:
-                job_status[job_id]['status'] = 'error'
-                job_status[job_id]['error'] = 'Gagal mengunduh video. Periksa link dan coba lagi.'
-
-    except Exception as e:
-        with job_lock:
-            job_status[job_id]['status'] = 'error'
-            job_status[job_id]['error'] = str(e)
+# Progress tracking
+progress_store = {}
 
 
-@app.route('/')
-def index():
-    return app.send_static_file('index.html')
+def sanitize_filename(name):
+    return re.sub(r'[\\/*?:"<>|]', "_", name)
 
 
-@app.route('/api/info', methods=['POST'])
-def get_info():
-    """Ambil info video sebelum download"""
-    data = request.json or {}
-    url = (data.get('url') or '').strip()
+@app.route("/api/info", methods=["POST"])
+def get_video_info():
+    """Fetch video metadata and available formats."""
+    data = request.get_json()
+    url = data.get("url", "").strip()
 
     if not url:
-        return jsonify({'error': 'Link tidak boleh kosong'}), 400
+        return jsonify({"error": "URL tidak boleh kosong"}), 400
 
-    if not clean_youtube_url(url):
-        return jsonify({'error': 'Link YouTube tidak valid'}), 400
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+    }
 
     try:
-        result = subprocess.run(
-            ['yt-dlp', '--dump-json', '--no-playlist', url],
-            capture_output=True, text=True, timeout=30
-        )
-        if result.returncode != 0:
-            return jsonify({'error': 'Video tidak ditemukan atau tidak bisa diakses'}), 400
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
 
-        info = json.loads(result.stdout)
-        formats = info.get('formats', [])
+        formats = []
+        seen = set()
 
-        # Cari resolusi terbaik
-        heights = set()
-        for f in formats:
-            h = f.get('height')
-            if h and f.get('vcodec') != 'none':
-                heights.add(h)
+        for f in info.get("formats", []):
+            height = f.get("height")
+            ext = f.get("ext")
+            vcodec = f.get("vcodec", "none")
+            acodec = f.get("acodec", "none")
+            filesize = f.get("filesize") or f.get("filesize_approx")
 
-        best_height = max(heights) if heights else 0
+            # Only video formats with audio (or we'll merge)
+            if not height or vcodec == "none":
+                continue
 
-        # Format label resolusi
-        res_label = f"{best_height}p" if best_height else "Terbaik"
+            label = f"{height}p"
+            if label not in seen:
+                seen.add(label)
+                formats.append({
+                    "format_id": f["format_id"],
+                    "label": label,
+                    "height": height,
+                    "ext": ext,
+                    "filesize": filesize,
+                    "filesize_str": _format_size(filesize) if filesize else "~",
+                })
+
+        formats.sort(key=lambda x: x["height"], reverse=True)
 
         return jsonify({
-            'title': info.get('title', 'Video YouTube'),
-            'thumbnail': info.get('thumbnail', ''),
-            'duration': info.get('duration_string', ''),
-            'channel': info.get('channel', ''),
-            'resolution': res_label,
-            'valid': True
+            "title": info.get("title", "Unknown"),
+            "thumbnail": info.get("thumbnail", ""),
+            "duration": _format_duration(info.get("duration", 0)),
+            "uploader": info.get("uploader", "Unknown"),
+            "view_count": _format_views(info.get("view_count", 0)),
+            "formats": formats,
         })
+
+    except yt_dlp.utils.DownloadError as e:
+        return jsonify({"error": f"Gagal memuat video: {str(e)[:200]}"}), 400
     except Exception as e:
-        return jsonify({'error': 'Terjadi kesalahan: ' + str(e)}), 500
+        return jsonify({"error": f"Terjadi kesalahan: {str(e)[:200]}"}), 500
 
 
-@app.route('/api/download', methods=['POST'])
-def start_download():
-    """Mulai proses download"""
-    data = request.json or {}
-    url = (data.get('url') or '').strip()
+@app.route("/api/download", methods=["POST"])
+def download_video():
+    """Download video with progress tracking."""
+    data = request.get_json()
+    url = data.get("url", "").strip()
+    format_id = data.get("format_id", "bestvideo+bestaudio/best")
+    task_id = data.get("task_id", "default")
 
-    if not url or not clean_youtube_url(url):
-        return jsonify({'error': 'Link tidak valid'}), 400
+    if not url:
+        return jsonify({"error": "URL tidak boleh kosong"}), 400
 
-    # Buat job ID unik
-    job_id = str(int(time.time() * 1000))
+    progress_store[task_id] = {"status": "starting", "percent": 0, "speed": "", "eta": ""}
 
-    # Jalankan download di background
-    t = threading.Thread(target=download_video, args=(job_id, url))
-    t.daemon = True
-    t.start()
+    def progress_hook(d):
+        if d["status"] == "downloading":
+            percent_str = d.get("_percent_str", "0%").strip().replace("%", "")
+            try:
+                percent = float(percent_str)
+            except ValueError:
+                percent = 0
+            progress_store[task_id] = {
+                "status": "downloading",
+                "percent": percent,
+                "speed": d.get("_speed_str", "").strip(),
+                "eta": d.get("_eta_str", "").strip(),
+                "filename": d.get("filename", ""),
+            }
+        elif d["status"] == "finished":
+            progress_store[task_id] = {
+                "status": "processing",
+                "percent": 100,
+                "speed": "",
+                "eta": "",
+                "filename": d.get("filename", ""),
+            }
 
-    return jsonify({'job_id': job_id})
+    ydl_opts = {
+        "format": f"{format_id}+bestaudio/best" if "+" not in format_id else format_id,
+        "outtmpl": os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s"),
+        "merge_output_format": "mp4",
+        "progress_hooks": [progress_hook],
+        "quiet": True,
+        "no_warnings": True,
+        "postprocessors": [{
+            "key": "FFmpegVideoConvertor",
+            "preferedformat": "mp4",
+        }],
+    }
 
+    result = {}
 
-@app.route('/api/progress/<job_id>')
-def check_progress(job_id):
-    """Cek status dan progress download"""
-    with job_lock:
-        status = job_status.get(job_id)
-
-    if not status:
-        return jsonify({'error': 'Job tidak ditemukan'}), 404
-
-    return jsonify({
-        'status': status['status'],
-        'progress': status.get('progress', 0),
-        'error': status.get('error')
-    })
-
-
-@app.route('/api/file/<job_id>')
-def get_file(job_id):
-    """Kirim file ke browser untuk diunduh"""
-    with job_lock:
-        status = job_status.get(job_id)
-
-    if not status or status['status'] != 'done':
-        return jsonify({'error': 'File belum siap'}), 404
-
-    file_path = status['file']
-    if not file_path or not os.path.exists(file_path):
-        return jsonify({'error': 'File tidak ditemukan'}), 404
-
-    def remove_after_send(path):
-        time.sleep(60)
+    def run_download():
         try:
-            os.remove(path)
-        except:
-            pass
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                filename = ydl.prepare_filename(info)
+                # Handle merged filename
+                base = os.path.splitext(filename)[0]
+                mp4_file = base + ".mp4"
+                if os.path.exists(mp4_file):
+                    filename = mp4_file
+                result["filename"] = filename
+                result["title"] = info.get("title", "video")
+            progress_store[task_id]["status"] = "done"
+            progress_store[task_id]["filename"] = result.get("filename", "")
+        except Exception as e:
+            progress_store[task_id] = {"status": "error", "error": str(e)[:300]}
 
-    # Hapus file setelah 60 detik
-    threading.Thread(target=remove_after_send, args=(file_path,), daemon=True).start()
+    thread = threading.Thread(target=run_download)
+    thread.start()
+    thread.join()  # Wait for completion (for direct download response)
+
+    if progress_store[task_id].get("status") == "error":
+        return jsonify({"error": progress_store[task_id].get("error")}), 500
+
+    filename = progress_store[task_id].get("filename", "")
+    title = result.get("title", "video")
+
+    if not filename or not os.path.exists(filename):
+        # Try to find the file
+        for f in os.listdir(DOWNLOAD_DIR):
+            if f.endswith(".mp4"):
+                filename = os.path.join(DOWNLOAD_DIR, f)
+                break
+
+    if not filename or not os.path.exists(filename):
+        return jsonify({"error": "File tidak ditemukan setelah download"}), 500
+
+    safe_name = sanitize_filename(title) + ".mp4"
 
     return send_file(
-        file_path,
-        mimetype='video/mp4',
+        filename,
         as_attachment=True,
-        download_name='video.mp4'
+        download_name=safe_name,
+        mimetype="video/mp4"
     )
 
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    print(f"🎬 YouTube to MP4 Converter berjalan di http://localhost:{port}")
-    app.run(host='0.0.0.0', port=port, debug=False)
+@app.route("/api/progress/<task_id>", methods=["GET"])
+def get_progress(task_id):
+    """Get download progress for a task."""
+    prog = progress_store.get(task_id, {"status": "unknown", "percent": 0})
+    return jsonify(prog)
+
+
+def _format_size(size_bytes):
+    if not size_bytes:
+        return "~"
+    for unit in ["B", "KB", "MB", "GB"]:
+        if size_bytes < 1024:
+            return f"{size_bytes:.1f} {unit}"
+        size_bytes /= 1024
+    return f"{size_bytes:.1f} TB"
+
+
+def _format_duration(seconds):
+    if not seconds:
+        return "0:00"
+    m, s = divmod(int(seconds), 60)
+    h, m = divmod(m, 60)
+    if h:
+        return f"{h}:{m:02d}:{s:02d}"
+    return f"{m}:{s:02d}"
+
+
+def _format_views(views):
+    if not views:
+        return "0"
+    if views >= 1_000_000:
+        return f"{views/1_000_000:.1f}M"
+    if views >= 1_000:
+        return f"{views/1_000:.1f}K"
+    return str(views)
+
+
+if __name__ == "__main__":
+    print("=" * 50)
+    print("  YouTube to MP4 Converter - Server")
+    print("  http://localhost:5000")
+    print("  Buka index.html di browser Anda")
+    print("=" * 50)
+    app.run(debug=True, port=5000, threaded=True)
