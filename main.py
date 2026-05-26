@@ -223,11 +223,6 @@ def _format_views(views):
         return f"{views/1_000:.1f}K"
     return str(views)
 
-
 if __name__ == "__main__":
-    print("=" * 50)
-    print("  YouTube to MP4 Converter - Server")
-    print("  http://localhost:5000")
-    print("  Buka index.html di browser Anda")
-    print("=" * 50)
-    app.run(debug=True, port=5000, threaded=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host="0.0.0.0", port=port, threaded=True)
