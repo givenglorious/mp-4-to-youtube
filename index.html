@@ -1,437 +1,554 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>YouTube → MP4 Converter</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YouTube → MP4 Downloader</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    font-family: 'Nunito', sans-serif;
-    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 50%, #e0f2f1 100%);
-    min-height: 100vh;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 2rem 1rem;
-    color: #1a1a1a;
-  }
+    :root {
+      --bg:       #f0f4ff;
+      --card:     #ffffff;
+      --primary:  #3b6ef8;
+      --primary2: #2251d4;
+      --accent:   #ff5c5c;
+      --green:    #22c55e;
+      --text:     #1a1a2e;
+      --muted:    #7a84a0;
+      --border:   #dde3f5;
+      --shadow:   0 8px 40px rgba(59,110,248,.13);
+    }
 
-  .container {
-    width: 100%;
-    max-width: 560px;
-  }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 60px;
+      color: var(--text);
+    }
 
-  /* Header */
-  .header {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 20px;
+      padding: 12px 26px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 20px rgba(59,110,248,.35);
+    }
+    .logo svg { width: 36px; height: 36px; }
+    .logo span { font-size: 1.55rem; font-weight: 900; letter-spacing: -.5px; }
+    header p {
+      font-size: 1.05rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
 
-  .logo {
-    width: 80px; height: 80px;
-    background: #fff;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 1rem;
-    box-shadow: 0 4px 20px rgba(46,125,50,0.15);
-    font-size: 38px;
-  }
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 600px;
+    }
 
-  .header h1 {
-    font-size: 26px; font-weight: 800;
-    color: #1b5e20;
-    letter-spacing: -0.5px;
-  }
+    /* ── STEP LABEL ── */
+    .step-label {
+      font-size: .8rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
 
-  .header p {
-    font-size: 16px; color: #558b2f;
-    margin-top: 6px;
-  }
+    /* ── URL INPUT ROW ── */
+    .url-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .url-row input {
+      flex: 1;
+      font-family: 'Nunito', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      border: 2.5px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 18px;
+      outline: none;
+      transition: border .2s;
+      color: var(--text);
+      background: #f7f9ff;
+    }
+    .url-row input:focus { border-color: var(--primary); background: #fff; }
+    .url-row input::placeholder { color: #b0b8d1; font-weight: 600; }
 
-  /* Cards */
-  .card {
-    background: #fff;
-    border-radius: 20px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 2px 16px rgba(46,125,50,0.08);
-  }
+    /* ── BUTTONS ── */
+    .btn {
+      font-family: 'Nunito', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 22px;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s, background .2s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(59,110,248,.3);
+    }
+    .btn-primary:hover { background: var(--primary2); box-shadow: 0 6px 20px rgba(59,110,248,.4); }
+    .btn-primary:disabled { background: #a5b4fc; cursor: not-allowed; box-shadow: none; transform: none; }
 
-  .card-label {
-    font-size: 16px; font-weight: 700;
-    color: #2e7d32;
-    margin-bottom: 12px;
-    display: flex; align-items: center; gap: 8px;
-  }
+    .btn-green {
+      background: var(--green);
+      color: #fff;
+      width: 100%;
+      font-size: 1.15rem;
+      padding: 18px;
+      border-radius: 16px;
+      box-shadow: 0 4px 18px rgba(34,197,94,.3);
+      margin-top: 6px;
+    }
+    .btn-green:hover { background: #16a34a; box-shadow: 0 6px 22px rgba(34,197,94,.4); }
+    .btn-green:disabled { background: #86efac; cursor: not-allowed; box-shadow: none; transform: none; }
 
-  /* Input */
-  #url-input {
-    width: 100%;
-    padding: 16px;
-    font-size: 16px;
-    font-family: 'Nunito', sans-serif;
-    border: 2px solid #c8e6c9;
-    border-radius: 14px;
-    background: #f9fbe7;
-    color: #1a1a1a;
-    outline: none;
-    transition: border-color 0.2s;
-  }
+    /* ── VIDEO PREVIEW ── */
+    #preview { display: none; margin-bottom: 28px; }
+    .preview-inner {
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      background: #f7f9ff;
+      border-radius: 18px;
+      padding: 16px;
+      border: 2px solid var(--border);
+    }
+    .preview-inner img {
+      width: 130px;
+      height: 82px;
+      object-fit: cover;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .preview-info { flex: 1; min-width: 0; }
+    .preview-title {
+      font-size: .97rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 5px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .preview-dur {
+      font-size: .83rem;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .preview-dur span {
+      background: var(--primary);
+      color: #fff;
+      border-radius: 8px;
+      padding: 2px 9px;
+      font-size: .78rem;
+    }
 
-  #url-input:focus { border-color: #43a047; background: #fff; }
-  #url-input::placeholder { color: #aaa; font-size: 14px; }
+    /* ── RESOLUTION PICKER ── */
+    #res-section { display: none; margin-bottom: 24px; }
+    #res-section .step-label { margin-bottom: 12px; }
+    .res-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .res-btn {
+      font-family: 'Nunito', sans-serif;
+      font-size: .95rem;
+      font-weight: 800;
+      border: 2.5px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 20px;
+      cursor: pointer;
+      background: #f7f9ff;
+      color: var(--muted);
+      transition: all .2s;
+    }
+    .res-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .res-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 3px 12px rgba(59,110,248,.3);
+    }
 
-  .btn-paste {
-    margin-top: 10px;
-    width: 100%;
-    padding: 14px;
-    font-size: 16px; font-weight: 700;
-    font-family: 'Nunito', sans-serif;
-    background: #e8f5e9; color: #2e7d32;
-    border: 2px solid #a5d6a7;
-    border-radius: 14px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    transition: background 0.15s;
-  }
-  .btn-paste:hover { background: #c8e6c9; }
+    /* ── PROGRESS ── */
+    #progress-area { display: none; margin-bottom: 18px; }
+    .progress-track {
+      width: 100%;
+      height: 14px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), #7ba7ff);
+      border-radius: 99px;
+      transition: width .4s ease;
+      animation: shimmer 1.5s infinite;
+      background-size: 200% 100%;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% center; }
+      100% { background-position: -200% center; }
+    }
+    #progress-text {
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-align: center;
+    }
 
-  /* Thumbnail */
-  #preview-card { display: none; }
+    /* ── ALERT ── */
+    .alert {
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-size: .93rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      display: none;
+    }
+    .alert-error  { background: #fff0f0; color: var(--accent); border: 2px solid #ffcdd2; }
+    .alert-success { background: #f0fdf4; color: #16a34a;      border: 2px solid #bbf7d0; }
 
-  .thumb-wrap {
-    width: 100%;
-    aspect-ratio: 16/9;
-    background: #f1f8e9;
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 12px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
-  .thumb-placeholder { text-align: center; color: #aaa; font-size: 14px; }
-  .thumb-placeholder span { font-size: 40px; display: block; margin-bottom: 6px; }
+    /* ── DIVIDER ── */
+    .divider { height: 1.5px; background: var(--border); margin: 22px 0; border-radius: 99px; }
 
-  #vid-title {
-    font-size: 14px; font-weight: 700;
-    color: #333; margin-bottom: 14px;
-    display: none; line-height: 1.5;
-  }
+    /* ── TIPS ── */
+    .tips {
+      background: #fffbeb;
+      border: 2px solid #fde68a;
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-top: 28px;
+      max-width: 600px;
+      width: 100%;
+    }
+    .tips h3 { font-size: .9rem; font-weight: 800; color: #92400e; margin-bottom: 8px; }
+    .tips ul { padding-left: 20px; }
+    .tips li { font-size: .88rem; color: #78350f; font-weight: 600; margin-bottom: 4px; }
 
-  /* Resolution buttons */
-  .res-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 32px;
+      font-size: .8rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-align: center;
+    }
 
-  .res-btn {
-    position: relative;
-    padding: 18px 8px;
-    font-size: 20px; font-weight: 800;
-    font-family: 'Nunito', sans-serif;
-    border: 2.5px solid #c8e6c9;
-    border-radius: 14px;
-    background: #f9fbe7;
-    color: #555;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.15s;
-    line-height: 1.2;
-  }
-  .res-btn small {
-    display: block; font-size: 12px;
-    font-weight: 600; margin-top: 3px; opacity: 0.7;
-  }
-  .res-btn:hover {
-    border-color: #43a047; background: #f1f8e9; color: #2e7d32;
-  }
-  .res-btn.active {
-    border-color: #2e7d32; background: #e8f5e9;
-    color: #1b5e20; border-width: 3px;
-  }
-  .best-badge {
-    position: absolute; top: -11px; left: 50%;
-    transform: translateX(-50%);
-    background: #ff6f00; color: #fff;
-    font-size: 10px; font-weight: 800;
-    padding: 3px 10px; border-radius: 20px;
-    white-space: nowrap; font-family: 'Nunito', sans-serif;
-  }
+    /* ── SPINNER ── */
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 3px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Download button */
-  #dl-btn {
-    width: 100%;
-    padding: 20px;
-    font-size: 22px; font-weight: 800;
-    font-family: 'Nunito', sans-serif;
-    background: #2e7d32; color: #fff;
-    border: none; border-radius: 18px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    transition: background 0.15s, transform 0.1s;
-    box-shadow: 0 4px 16px rgba(46,125,50,0.3);
-    margin-top: 0.5rem;
-  }
-  #dl-btn:hover:not(:disabled) { background: #1b5e20; }
-  #dl-btn:active:not(:disabled) { transform: scale(0.98); }
-  #dl-btn:disabled {
-    background: #a5d6a7; cursor: not-allowed;
-    box-shadow: none;
-  }
-
-  /* Status */
-  #status-box {
-    background: #fff;
-    border: 1.5px solid #c8e6c9;
-    border-radius: 14px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 1rem;
-    display: none;
-  }
-  #status-box.show { display: block; }
-
-  .status-row {
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 8px;
-  }
-  .status-icon { font-size: 26px; }
-  .status-text { font-size: 16px; font-weight: 700; color: #1a1a1a; }
-  .status-sub { font-size: 13px; color: #666; margin-top: 2px; }
-
-  .progress-bar {
-    height: 12px; background: #e8f5e9;
-    border-radius: 99px; overflow: hidden;
-  }
-  .progress-fill {
-    height: 100%; background: #2e7d32;
-    border-radius: 99px; width: 0%;
-    transition: width 0.4s ease;
-  }
-
-  .note {
-    font-size: 13px; color: #777;
-    text-align: center; margin-top: 1.25rem;
-    line-height: 1.7;
-  }
-  .note a { color: #43a047; }
-
-  /* Responsive */
-  @media (max-width: 400px) {
-    .header h1 { font-size: 22px; }
-    #dl-btn { font-size: 18px; padding: 16px; }
-    .res-btn { font-size: 18px; }
-  }
-</style>
+    @media (max-width: 480px) {
+      .card { padding: 24px 18px; }
+      .url-row { flex-direction: column; }
+      .btn-primary { width: 100%; }
+      .preview-inner img { width: 100px; height: 64px; }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
 
-  <div class="header">
-    <div class="logo">🎬</div>
-    <h1>YouTube → MP4</h1>
-    <p>Unduh video YouTube dengan mudah</p>
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 36 36" fill="none">
+      <rect width="36" height="36" rx="10" fill="white" fill-opacity=".15"/>
+      <path d="M8 18C8 12.477 12.477 8 18 8s10 4.477 10 10-4.477 10-10 10S8 23.523 8 18Z" fill="white" fill-opacity=".25"/>
+      <path d="M15 13.5l8 4.5-8 4.5v-9Z" fill="white"/>
+      <path d="M18 30v-4M18 10V6M10 18H6M30 18h-4" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>
+    </svg>
+    <span>YouTube → MP4</span>
+  </div>
+  <p>Unduh video YouTube dengan mudah &amp; cepat ⚡</p>
+</header>
+
+<div class="card">
+
+  <!-- STEP 1 -->
+  <div class="step-label">Langkah 1 — Tempel Link YouTube</div>
+  <div class="url-row">
+    <input id="urlInput" type="url" placeholder="https://www.youtube.com/watch?v=..." />
+    <button class="btn btn-primary" id="checkBtn" onclick="checkVideo()">🔍 Cek Video</button>
   </div>
 
-  <!-- Step 1: URL Input -->
-  <div class="card">
-    <div class="card-label">📋 Langkah 1 — Tempel link YouTube</div>
-    <input type="url" id="url-input"
-      placeholder="Contoh: https://www.youtube.com/watch?v=..."
-      autocomplete="off" spellcheck="false"
-      oninput="onUrlInput(this.value)"
-    />
-    <button class="btn-paste" onclick="pasteUrl()">
-      📋 &nbsp; Tempel dari Papan Klip
+  <!-- ERROR / SUCCESS ALERT -->
+  <div id="errorBox" class="alert alert-error"></div>
+  <div id="successBox" class="alert alert-success"></div>
+
+  <!-- PREVIEW -->
+  <div id="preview">
+    <div class="preview-inner">
+      <img id="thumbImg" src="" alt="thumbnail"/>
+      <div class="preview-info">
+        <div class="preview-title" id="videoTitle">—</div>
+        <div class="preview-dur">⏱ Durasi: <span id="videoDur">—</span></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+  </div>
+
+  <!-- STEP 2 — RESOLUTION -->
+  <div id="res-section">
+    <div class="step-label">Langkah 2 — Pilih Kualitas Video</div>
+    <div class="res-grid" id="resGrid"></div>
+    <div class="divider"></div>
+  </div>
+
+  <!-- STEP 3 — DOWNLOAD -->
+  <div id="dl-section" style="display:none">
+    <div class="step-label">Langkah 3 — Unduh Video</div>
+    <div id="progress-area">
+      <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+      <div id="progress-text">Sedang mengunduh… mohon tunggu 🙏</div>
+    </div>
+    <button class="btn btn-green" id="dlBtn" onclick="startDownload()">
+      ⬇️ &nbsp;Unduh Sekarang
     </button>
   </div>
 
-  <!-- Step 2: Preview + Resolution -->
-  <div class="card" id="preview-card">
-    <div class="thumb-wrap" id="thumb-area">
-      <div class="thumb-placeholder">
-        <span>🎥</span>
-        Preview video
-      </div>
-    </div>
-    <div id="vid-title"></div>
-
-    <div class="card-label">⚙️ Langkah 2 — Pilih kualitas video</div>
-    <div class="res-grid" id="res-grid"></div>
-  </div>
-
-  <!-- Status -->
-  <div id="status-box">
-    <div class="status-row">
-      <span class="status-icon" id="status-icon">⏳</span>
-      <div>
-        <div class="status-text" id="status-text">Memproses...</div>
-        <div class="status-sub" id="status-sub"></div>
-      </div>
-    </div>
-    <div class="progress-bar" id="prog-wrap" style="display:none">
-      <div class="progress-fill" id="prog-fill"></div>
-    </div>
-  </div>
-
-  <!-- Step 3: Download -->
-  <button id="dl-btn" onclick="startDownload()" disabled>
-    ⬇️ &nbsp; Unduh Video Sekarang
-  </button>
-
-  <p class="note">
-    ⚠️ Hanya untuk video yang Anda miliki haknya atau video bebas hak cipta.<br/>
-    Klik tombol Unduh → halaman cobalt.tools akan terbuka → pilih MP4 → selesai!
-  </p>
-
 </div>
 
+<!-- TIPS -->
+<div class="tips">
+  <h3>💡 Petunjuk Penggunaan</h3>
+  <ul>
+    <li>Buka YouTube, cari video yang diinginkan, lalu salin link-nya.</li>
+    <li>Tempel link di kolom di atas, lalu tekan <b>Cek Video</b>.</li>
+    <li>Pilih kualitas gambar (semakin besar angkanya, semakin jernih).</li>
+    <li>Tekan <b>Unduh Sekarang</b> dan tunggu hingga selesai.</li>
+    <li>File MP4 akan tersimpan otomatis ke folder <b>Unduhan</b> Anda.</li>
+  </ul>
+</div>
+
+<footer>
+  ⚙️ Server lokal berjalan di <code>http://localhost:5000</code> &nbsp;|&nbsp; Hanya untuk penggunaan pribadi
+</footer>
+
 <script>
-const RESOLUTIONS = [
-  { label: "1080p", sub: "Full HD ✨", key: "1080" },
-  { label: "720p",  sub: "HD",         key: "720"  },
-  { label: "480p",  sub: "Standar",    key: "480"  },
-  { label: "360p",  sub: "Ringan",     key: "360"  },
-];
+  const SERVER = "http://localhost:5000";
+  let selectedRes = null;
+  let videoInfo = null;
 
-let selectedRes = null;
-let detectedBest = null;
-let currentVideoId = null;
+  function showError(msg) {
+    const b = document.getElementById("errorBox");
+    b.textContent = "❌ " + msg;
+    b.style.display = "block";
+    document.getElementById("successBox").style.display = "none";
+  }
+  function showSuccess(msg) {
+    const b = document.getElementById("successBox");
+    b.textContent = "✅ " + msg;
+    b.style.display = "block";
+    document.getElementById("errorBox").style.display = "none";
+  }
+  function hideAlerts() {
+    document.getElementById("errorBox").style.display = "none";
+    document.getElementById("successBox").style.display = "none";
+  }
 
-function extractVideoId(url) {
-  try {
-    const u = new URL(url.trim());
-    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('?')[0];
-    if (u.hostname.includes('youtube.com')) {
-      const v = u.searchParams.get('v');
-      if (v) return v;
-      if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/')[2];
+  async function checkVideo() {
+    const url = document.getElementById("urlInput").value.trim();
+    if (!url) { showError("Mohon masukkan link YouTube terlebih dahulu."); return; }
+
+    hideAlerts();
+    document.getElementById("preview").style.display = "none";
+    document.getElementById("res-section").style.display = "none";
+    document.getElementById("dl-section").style.display = "none";
+
+    const btn = document.getElementById("checkBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Memeriksa…';
+
+    try {
+      const res = await fetch(SERVER + "/info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || "Terjadi kesalahan."); return; }
+
+      videoInfo = data;
+      document.getElementById("thumbImg").src = data.thumbnail;
+      document.getElementById("videoTitle").textContent = data.title;
+      document.getElementById("videoDur").textContent = data.duration;
+      document.getElementById("preview").style.display = "block";
+
+      buildResGrid(data.resolutions);
+      showSuccess("Video ditemukan! Silakan pilih kualitas di bawah.");
+    } catch (e) {
+      showError("Tidak dapat terhubung ke server. Pastikan server Python sudah berjalan.");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = "🔍 Cek Video";
     }
-  } catch(e) {}
-  return null;
-}
+  }
 
-function onUrlInput(val) {
-  const vid = extractVideoId(val);
-  currentVideoId = vid;
-  if (vid) {
-    showPreview(vid);
-  } else {
-    document.getElementById('preview-card').style.display = 'none';
-    document.getElementById('dl-btn').disabled = true;
+  function buildResGrid(resolutions) {
+    const grid = document.getElementById("resGrid");
+    grid.innerHTML = "";
     selectedRes = null;
-    hideStatus();
+
+    if (!resolutions || resolutions.length === 0) {
+      grid.innerHTML = "<p style='color:var(--muted);font-weight:700'>Kualitas tidak terdeteksi, akan pakai terbaik.</p>";
+      selectedRes = "best";
+    } else {
+      // Auto-select best (highest)
+      resolutions.forEach((h, i) => {
+        const btn = document.createElement("button");
+        btn.className = "res-btn" + (i === 0 ? " active" : "");
+        if (i === 0) selectedRes = String(h);
+
+        let label = h + "p";
+        let badge = "";
+        if (i === 0) badge = " 🏆 Terbaik";
+        else if (h >= 720) badge = " ⭐ HD";
+        btn.textContent = label + badge;
+        btn.onclick = () => selectRes(btn, String(h));
+        grid.appendChild(btn);
+      });
+    }
+
+    document.getElementById("res-section").style.display = "block";
+    document.getElementById("dl-section").style.display = "block";
   }
-}
 
-function showPreview(vid) {
-  document.getElementById('preview-card').style.display = 'block';
-  const thumbArea = document.getElementById('thumb-area');
-  thumbArea.innerHTML = `<img src="https://img.youtube.com/vi/${vid}/hqdefault.jpg" alt="Thumbnail" onerror="this.outerHTML='<div class=\\'thumb-placeholder\\'><span>🎥</span>Preview tidak tersedia</div>'"/>`;
+  function selectRes(el, val) {
+    document.querySelectorAll(".res-btn").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
+    selectedRes = val;
+  }
 
-  detectBestResolution(vid);
-}
+  async function startDownload() {
+    const url = document.getElementById("urlInput").value.trim();
+    if (!url || !selectedRes) { showError("Pilih kualitas terlebih dahulu."); return; }
 
-function detectBestResolution(vid) {
-  const img = new Image();
-  img.src = `https://img.youtube.com/vi/${vid}/maxresdefault.jpg`;
-  img.onload = () => {
-    detectedBest = img.naturalWidth > 640 ? '1080' : '720';
-    autoSelectAndBuild();
-  };
-  img.onerror = () => {
-    detectedBest = '720';
-    autoSelectAndBuild();
-  };
-}
+    hideAlerts();
+    const dlBtn = document.getElementById("dlBtn");
+    dlBtn.disabled = true;
+    dlBtn.innerHTML = '<span class="spinner"></span>Sedang memproses…';
 
-function autoSelectAndBuild() {
-  selectedRes = RESOLUTIONS.find(r => r.key === detectedBest) || RESOLUTIONS[1];
-  document.getElementById('dl-btn').disabled = false;
-  buildResButtons();
-}
+    const prog = document.getElementById("progress-area");
+    const bar  = document.getElementById("progressBar");
+    const txt  = document.getElementById("progress-text");
+    prog.style.display = "block";
 
-function buildResButtons() {
-  const grid = document.getElementById('res-grid');
-  grid.innerHTML = '';
-  RESOLUTIONS.forEach(res => {
-    const isBest = res.key === detectedBest;
-    const isActive = selectedRes && selectedRes.key === res.key;
-    const btn = document.createElement('button');
-    btn.className = 'res-btn' + (isActive ? ' active' : '');
-    btn.innerHTML = `
-      ${isBest ? '<span class="best-badge">✨ Terbaik</span>' : ''}
-      ${res.label}
-      <small>${res.sub}</small>
-    `;
-    btn.onclick = () => {
-      selectedRes = res;
-      document.getElementById('dl-btn').disabled = false;
-      buildResButtons();
-    };
-    grid.appendChild(btn);
+    // Animate progress (fake but reassuring)
+    let pct = 0;
+    bar.style.width = "0%";
+    const ticker = setInterval(() => {
+      if (pct < 85) { pct += Math.random() * 4 + 1; bar.style.width = Math.min(pct, 85) + "%"; }
+    }, 400);
+
+    const messages = [
+      "Menghubungi YouTube…",
+      "Mengambil video…",
+      "Mengunduh audio & video…",
+      "Menggabungkan file…",
+      "Hampir selesai, mohon tunggu…"
+    ];
+    let mi = 0;
+    txt.textContent = messages[mi];
+    const msgTicker = setInterval(() => {
+      mi = (mi + 1) % messages.length;
+      txt.textContent = messages[mi];
+    }, 3500);
+
+    try {
+      const res = await fetch(SERVER + "/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, resolution: selectedRes })
+      });
+
+      clearInterval(ticker);
+      clearInterval(msgTicker);
+
+      if (!res.ok) {
+        const err = await res.json();
+        bar.style.width = "0%";
+        prog.style.display = "none";
+        showError(err.error || "Gagal mengunduh video.");
+        return;
+      }
+
+      bar.style.width = "100%";
+      txt.textContent = "✅ Selesai! File sedang diunduh…";
+
+      const blob = await res.blob();
+      const cdHeader = res.headers.get("Content-Disposition") || "";
+      const nameMatch = cdHeader.match(/filename\*?=(?:UTF-8'')?["']?([^"';\n]+)/i);
+      const filename = nameMatch ? decodeURIComponent(nameMatch[1].trim()) : "video.mp4";
+
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      showSuccess("Video berhasil diunduh! Cek folder Unduhan Anda. 🎉");
+      setTimeout(() => { prog.style.display = "none"; }, 3000);
+
+    } catch (e) {
+      clearInterval(ticker);
+      clearInterval(msgTicker);
+      prog.style.display = "none";
+      showError("Koneksi ke server gagal. Pastikan server Python sudah berjalan.");
+    } finally {
+      dlBtn.disabled = false;
+      dlBtn.innerHTML = "⬇️ &nbsp;Unduh Sekarang";
+    }
+  }
+
+  // Allow pressing Enter in the URL box
+  document.getElementById("urlInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") checkVideo();
   });
-}
-
-async function pasteUrl() {
-  try {
-    const text = await navigator.clipboard.readText();
-    const input = document.getElementById('url-input');
-    input.value = text;
-    onUrlInput(text);
-  } catch(e) {
-    alert('Izinkan akses clipboard, atau tempel link secara manual di kolom di atas.');
-  }
-}
-
-function showStatus(icon, text, sub) {
-  const box = document.getElementById('status-box');
-  box.className = 'show';
-  document.getElementById('status-icon').textContent = icon;
-  document.getElementById('status-text').textContent = text;
-  document.getElementById('status-sub').textContent = sub;
-  document.getElementById('prog-wrap').style.display = 'none';
-}
-
-function showProgress(icon, text, sub, pct) {
-  showStatus(icon, text, sub);
-  document.getElementById('prog-wrap').style.display = 'block';
-  setTimeout(() => {
-    document.getElementById('prog-fill').style.width = pct + '%';
-  }, 50);
-}
-
-function hideStatus() {
-  document.getElementById('status-box').className = '';
-}
-
-function startDownload() {
-  if (!currentVideoId || !selectedRes) {
-    showStatus('⚠️', 'Silakan tempel link YouTube terlebih dahulu.', '');
-    return;
-  }
-
-  document.getElementById('dl-btn').disabled = true;
-  showProgress('⏳', 'Menyiapkan unduhan...', `Kualitas: ${selectedRes.label}`, 30);
-
-  setTimeout(() => showProgress('🔄', 'Mengambil informasi video...', 'Mohon tunggu sebentar', 65), 900);
-
-  setTimeout(() => {
-    showProgress('✅', 'Berhasil! Membuka halaman unduhan...', '', 100);
-    const ytUrl = `https://www.youtube.com/watch?v=${currentVideoId}`;
-    const cobaltUrl = `https://cobalt.tools/#${encodeURIComponent(ytUrl)}`;
-
-    setTimeout(() => {
-      window.open(cobaltUrl, '_blank');
-      showStatus('✅', 'Halaman unduhan sudah terbuka!', 'Di cobalt.tools: pilih format MP4 → klik Download.');
-      document.getElementById('dl-btn').disabled = false;
-    }, 800);
-  }, 2200);
-}
 </script>
 </body>
 </html>
